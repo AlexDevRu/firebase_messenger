@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "226573029756",
+    "project_id": "my-messenger-378715",
+    "storage_bucket": "my-messenger-378715.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:226573029756:android:110a1904214543a9d714f9",
+        "android_client_info": {
+          "package_name": "com.vironit.flowmessenger"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "226573029756-jjeaa1t90dm45gvve0ea2putvl5qsah1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vironit.flowmessenger",
+            "certificate_hash": "39138626ed482be280f6b757c199b9caf8874779"
+          }
+        },
+        {
+          "client_id": "226573029756-fsir4cc4aiqp8clp4ddhmn9chglvpatf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCgxWKv6FAaMGlxXJ_WH45oZyy8DaY1v_Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "226573029756-44q13n62t9t72qfog9ta8ss0rg4pkjns.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,36 +1,47 @@
 package com.vironit.flowmessenger.auth
 
 import android.content.Intent
-import android.content.IntentSender
 import android.content.IntentSender.SendIntentException
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.auth.api.identity.SignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.vironit.flowmessenger.MainActivity
 import com.vironit.flowmessenger.R
 import com.vironit.flowmessenger.databinding.ActivityAuthBinding
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 
-class WelcomeScreen : AppCompatActivity(), View.OnClickListener {
+class AuthActivity : AppCompatActivity(), View.OnClickListener {
 
     private lateinit var signInRequest : BeginSignInRequest
     private lateinit var signUpRequest : BeginSignInRequest
     private lateinit var oneTapClient: SignInClient
 
     private lateinit var binding: ActivityAuthBinding
+
+    private lateinit var googleSignInClient: GoogleSignInClient
+
+    private val viewModel by viewModels<AuthViewModel>()
 
     private val oneTapResult = registerForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult()
@@ -44,14 +55,7 @@ class WelcomeScreen : AppCompatActivity(), View.OnClickListener {
                     Firebase.auth.signInWithCredential(firebaseCredential)
                         .addOnCompleteListener(this) { task ->
                             if (task.isSuccessful) {
-                                val user = Firebase.auth.currentUser
-                                val email = user?.email.orEmpty()
-                                Log.d(TAG, "onActivityResult: user = $email")
-                                Firebase.firestore.collection("/users")
-                                    .document(email).set(hashMapOf<String, Any>()).addOnCompleteListener {
-                                        if (it.isSuccessful)
-                                            goToMainScreen()
-                                    }
+                                viewModel.createUser()
                             }
                         }
                 }
@@ -81,6 +85,24 @@ class WelcomeScreen : AppCompatActivity(), View.OnClickListener {
         }
     }
 
+    private val googleSignInResult = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        val task = GoogleSignIn.getSignedInAccountFromIntent(it.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            val authCredential = GoogleAuthProvider.getCredential(account.idToken, null)
+            Firebase.auth.signInWithCredential(authCredential)
+                .addOnCompleteListener(this) {
+                    if (it.isSuccessful) {
+                        viewModel.createUser()
+                    }
+                }
+        } catch (e: ApiException) {
+            Log.w(TAG, "signInResult:failed code=" + e.statusCode)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityAuthBinding.inflate(layoutInflater)
@@ -106,7 +128,25 @@ class WelcomeScreen : AppCompatActivity(), View.OnClickListener {
                     .build())
             .build()
 
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestEmail()
+            .requestIdToken(getString(R.string.your_web_client_id))
+            .build()
+        googleSignInClient = GoogleSignIn.getClient(this, gso);
+
         binding.btnGoogle.setOnClickListener(this)
+
+        observe()
+    }
+
+    private fun observe() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.navigateToMain.collectLatest {
+                    goToMainScreen()
+                }
+            }
+        }
     }
 
     override fun onStart() {
@@ -122,7 +162,7 @@ class WelcomeScreen : AppCompatActivity(), View.OnClickListener {
     }
 
     override fun onClick(view: View?) {
-        oneTapClient.beginSignIn(signInRequest)
+        /*oneTapClient.beginSignIn(signInRequest)
             .addOnSuccessListener(
                 this
             ) { result ->
@@ -137,7 +177,9 @@ class WelcomeScreen : AppCompatActivity(), View.OnClickListener {
                 // do nothing and continue presenting the signed-out UI.
                 Log.d(TAG, e.localizedMessage.orEmpty())
                 displaySignUp()
-            }
+            }*/
+        val signInIntent = googleSignInClient.signInIntent
+        googleSignInResult.launch(signInIntent)
     }
 
     private fun displaySignUp() {

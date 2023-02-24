@@ -1,13 +1,18 @@
 package com.vironit.flowmessenger
 
-import androidx.appcompat.app.AppCompatActivity
+import android.content.Intent
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.google.android.material.snackbar.Snackbar
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 import com.vironit.flowmessenger.adapters.ChatsAdapter
+import com.vironit.flowmessenger.auth.AuthActivity
 import com.vironit.flowmessenger.databinding.ActivityMainBinding
 import com.vironit.flowmessenger.models.Chat
 import kotlinx.coroutines.flow.collectLatest
@@ -38,6 +43,28 @@ class MainActivity : AppCompatActivity(), ChatsAdapter.Listener {
                 }
             }
         }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_logout -> {
+                logout()
+                true
+            }
+            else -> false
+        }
+    }
+
+    private fun logout() {
+        Firebase.auth.signOut()
+        val intent = Intent(this, AuthActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+        startActivity(intent)
     }
 
     override fun onItemClick(chat: Chat) {

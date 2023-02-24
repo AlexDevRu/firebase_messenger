@@ -13,6 +13,7 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import com.vironit.flowmessenger.adapters.ChatsAdapter
 import com.vironit.flowmessenger.auth.AuthActivity
+import com.vironit.flowmessenger.chat.ChatActivity
 import com.vironit.flowmessenger.databinding.ActivityMainBinding
 import com.vironit.flowmessenger.models.Chat
 import kotlinx.coroutines.flow.collectLatest
@@ -68,6 +69,8 @@ class MainActivity : AppCompatActivity(), ChatsAdapter.Listener {
     }
 
     override fun onItemClick(chat: Chat) {
-
+        val intent = Intent(this, ChatActivity::class.java)
+        intent.putExtra("email", chat.personEmail)
+        startActivity(intent)
     }
 }

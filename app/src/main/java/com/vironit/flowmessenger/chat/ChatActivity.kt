@@ -34,6 +34,8 @@ class ChatActivity : AppCompatActivity(), View.OnClickListener {
         viewModel.userEmail = intent?.getStringExtra("email").orEmpty()
         title = viewModel.userEmail
 
+        viewModel.start()
+
         adapter = MessagesListAdapter<Message>(Firebase.auth.currentUser?.email) { imageView, url, payload ->
             Glide
                 .with(this)
@@ -61,10 +63,12 @@ class ChatActivity : AppCompatActivity(), View.OnClickListener {
     private fun observe() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.getMessages().collect {
+                viewModel.messages.collect {
+//                    adapter.upsert(it)
                     it.forEach {
                         adapter.upsert(it)
                     }
+                    binding.messagesList.scrollToPosition(0)
                 }
             }
         }

@@ -28,4 +28,12 @@ data class Message(
     override fun getCreatedAt(): Date {
         return createdAt
     }
+
+    operator fun compareTo(message: Message) : Int {
+        return when {
+            createdAt < message.createdAt -> -1
+            createdAt == message.createdAt -> 0
+            else -> 1
+        }
+    }
 }

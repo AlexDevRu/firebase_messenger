@@ -11,6 +11,7 @@ import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.vironit.flowmessenger.models.Message
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
 import kotlin.coroutines.resumeWithException
@@ -33,55 +34,14 @@ class ChatViewModel: ViewModel() {
     private val _messages = MutableStateFlow(emptyList<Message>())
     val messages = _messages.asSharedFlow()
 
-    private var init = true
-
     companion object {
         private const val TAG = "ChatViewModel"
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     fun start() {
         viewModelScope.launch {
-            val myMessages = suspendCancellableCoroutine<List<Message>> { continuation ->
-                myMessagesCollection.get().addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        val list = mutableListOf<Message>()
-                        for (doc in task.result.documents) {
-                            val message = Message(
-                                id = doc.id,
-                                email = Firebase.auth.currentUser?.email.orEmpty(),
-                                text = doc.getString("text").orEmpty(),
-                                createdAt = doc.getTimestamp("date")!!.toDate()
-                            )
-                            Log.d(TAG, "getMyMessages: $message")
-                            list.add(message)
-                        }
-                        continuation.resume(list) {}
-                    } else {
-                        continuation.resumeWithException(task.exception ?: Exception())
-                    }
-                }
-            }
-            val personMessages = suspendCancellableCoroutine<List<Message>> { continuation ->
-                personMessagesCollection.get().addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        val list = mutableListOf<Message>()
-                        for (doc in task.result.documents) {
-                            val message = Message(
-                                id = doc.id,
-                                email = userEmail,
-                                text = doc.getString("text").orEmpty(),
-                                createdAt = doc.getTimestamp("date")!!.toDate()
-                            )
-                            Log.d(TAG, "getPersonMessages: $message")
-                            list.add(message)
-                        }
-                        continuation.resume(list) {}
-                    } else {
-                        continuation.resumeWithException(task.exception ?: Exception())
-                    }
-                }
-            }
+            val myMessages = getMessages(myMessagesCollection, Firebase.auth.currentUser?.email.orEmpty())
+            val personMessages = getMessages(personMessagesCollection, userEmail)
             val newList = mutableListOf<Message>()
             newList.addAll(myMessages)
             newList.addAll(personMessages)
@@ -89,6 +49,28 @@ class ChatViewModel: ViewModel() {
             _messages.value = newList
             Log.d(TAG, "start1: $newList")
             collectNewMessages()
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private suspend fun getMessages(collectionReference: CollectionReference, email: String) = suspendCancellableCoroutine<List<Message>> { continuation ->
+        collectionReference.get().addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val list = mutableListOf<Message>()
+                for (doc in task.result.documents) {
+                    val message = Message(
+                        id = doc.id,
+                        email = email,
+                        text = doc.getString("text").orEmpty(),
+                        createdAt = doc.getTimestamp("date")!!.toDate()
+                    )
+                    Log.d(TAG, "getMyMessages: $message")
+                    list.add(message)
+                }
+                continuation.resume(list) {}
+            } else {
+                continuation.resumeWithException(task.exception ?: Exception())
+            }
         }
     }
 
@@ -114,40 +96,27 @@ class ChatViewModel: ViewModel() {
     }
 
     private fun getMyMessages() = callbackFlow {
-        val registration = myMessagesCollection.orderBy("date", Query.Direction.ASCENDING).addSnapshotListener { value, error ->
-            if (value != null) {
-                for (doc in value) {
-                    val message = Message(
-                        id = doc.id,
-                        email = Firebase.auth.currentUser?.email.orEmpty(),
-                        text = doc.getString("text").orEmpty(),
-                        createdAt = doc.getTimestamp("date")!!.toDate()
-                    )
-                    Log.d(TAG, "getMyMessages: $message")
-                    viewModelScope.launch { send(message) }
-                }
-            }
-        }
-
+        val registration = listenMessages(myMessagesCollection, Firebase.auth.currentUser?.email.orEmpty())
         awaitClose { registration.remove() }
     }
 
     private fun getPersonMessages() = callbackFlow {
-        val registration = personMessagesCollection.orderBy("date", Query.Direction.ASCENDING).addSnapshotListener { value, error ->
-            if (value != null) {
-                for (doc in value) {
-                    val message = Message(
-                        id = doc.id,
-                        email = userEmail,
-                        text = doc.getString("text").orEmpty(),
-                        createdAt = doc.getTimestamp("date")!!.toDate()
-                    )
-                    viewModelScope.launch { send(message) }
-                }
+        val registration = listenMessages(personMessagesCollection, userEmail)
+        awaitClose { registration.remove() }
+    }
+
+    private fun ProducerScope<Message>.listenMessages(collectionReference: CollectionReference, email: String) = collectionReference.orderBy("date", Query.Direction.ASCENDING).addSnapshotListener { value, error ->
+        if (value != null) {
+            for (doc in value) {
+                val message = Message(
+                    id = doc.id,
+                    email = email,
+                    text = doc.getString("text").orEmpty(),
+                    createdAt = doc.getTimestamp("date")!!.toDate()
+                )
+                viewModelScope.launch { send(message) }
             }
         }
-
-        awaitClose { registration.remove() }
     }
 
     fun sendMessage(text: String) {

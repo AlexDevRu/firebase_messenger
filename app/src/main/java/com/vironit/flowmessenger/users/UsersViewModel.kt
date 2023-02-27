@@ -10,6 +10,7 @@ import com.google.firebase.ktx.Firebase
 import com.vironit.flowmessenger.models.Chat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -40,6 +41,12 @@ class UsersViewModel : ViewModel() {
 
     private fun getChatsFlow() = callbackFlow {
         val registration = chats.addSnapshotListener { value, error ->
+            if (error != null) {
+                Log.w(TAG, "Listen failed.", error)
+                cancel()
+                return@addSnapshotListener
+            }
+
             if (value != null) {
                 val list = mutableListOf<Chat>()
                 for (doc in value) {
@@ -63,6 +70,12 @@ class UsersViewModel : ViewModel() {
                 val registration = users
                     .whereNotEqualTo(FieldPath.documentId(), Firebase.auth.currentUser?.email)
                     .addSnapshotListener { value, error ->
+                        if (error != null) {
+                            Log.w(TAG, "Listen failed.", error)
+                            cancel()
+                            return@addSnapshotListener
+                        }
+
                         if (value != null) {
                             val list = mutableListOf<Chat>()
                             for (doc in value) {

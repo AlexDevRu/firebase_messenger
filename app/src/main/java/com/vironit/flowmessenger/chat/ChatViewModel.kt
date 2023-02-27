@@ -121,6 +121,12 @@ class ChatViewModel : ViewModel() {
         email: String
     ) = collectionReference.orderBy("date", Query.Direction.ASCENDING)
         .addSnapshotListener { value, error ->
+            if (error != null) {
+                Log.w(TAG, "Listen failed.", error)
+                cancel()
+                return@addSnapshotListener
+            }
+
             if (value != null) {
                 for (doc in value) {
                     val message = Message(

@@ -132,9 +132,11 @@ class AuthActivity : AppCompatActivity(), View.OnClickListener {
             .requestEmail()
             .requestIdToken(getString(R.string.your_web_client_id))
             .build()
-        googleSignInClient = GoogleSignIn.getClient(this, gso);
+        googleSignInClient = GoogleSignIn.getClient(this, gso)
 
         binding.btnGoogle.setOnClickListener(this)
+
+        supportActionBar?.hide()
 
         observe()
     }

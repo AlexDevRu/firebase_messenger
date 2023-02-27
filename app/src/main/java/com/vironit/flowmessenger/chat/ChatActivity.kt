@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -64,11 +65,17 @@ class ChatActivity : AppCompatActivity(), View.OnClickListener {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.messages.collect {
-//                    adapter.upsert(it)
                     it.forEach {
                         adapter.upsert(it)
                     }
                     binding.messagesList.scrollToPosition(0)
+                }
+            }
+        }
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.loading.collectLatest {
+                    binding.progressBar.isVisible = it
                 }
             }
         }

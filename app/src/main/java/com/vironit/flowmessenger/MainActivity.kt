@@ -9,6 +9,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import com.vironit.flowmessenger.adapters.ChatsAdapter
@@ -16,6 +18,7 @@ import com.vironit.flowmessenger.auth.AuthActivity
 import com.vironit.flowmessenger.chat.ChatActivity
 import com.vironit.flowmessenger.databinding.ActivityMainBinding
 import com.vironit.flowmessenger.models.Chat
+import com.vironit.flowmessenger.users.UsersActivity
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -57,15 +60,28 @@ class MainActivity : AppCompatActivity(), ChatsAdapter.Listener {
                 logout()
                 true
             }
+            R.id.action_search -> {
+                val intent = Intent(this, UsersActivity::class.java)
+                startActivity(intent)
+                true
+            }
             else -> false
         }
     }
 
     private fun logout() {
         Firebase.auth.signOut()
-        val intent = Intent(this, AuthActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
-        startActivity(intent)
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestEmail()
+            .requestIdToken(getString(R.string.your_web_client_id))
+            .build()
+        GoogleSignIn.getClient(this, gso).signOut().addOnCompleteListener {
+            if (it.isSuccessful) {
+                val intent = Intent(this, AuthActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+                startActivity(intent)
+            }
+        }
     }
 
     override fun onItemClick(chat: Chat) {

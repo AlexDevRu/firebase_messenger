@@ -37,7 +37,7 @@ class ChatActivity : AppCompatActivity(), View.OnClickListener {
 
         viewModel.start()
 
-        adapter = MessagesListAdapter<Message>(Firebase.auth.currentUser?.email) { imageView, url, payload ->
+        adapter = MessagesListAdapter<Message>(Firebase.auth.currentUser?.email) { imageView, url, _ ->
             Glide
                 .with(this)
                 .load(url)
